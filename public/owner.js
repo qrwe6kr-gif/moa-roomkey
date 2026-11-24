@@ -85,9 +85,9 @@ function render() {
           NFC Tools 앱 → 쓰기 → 레코드 추가 → URL → 위 주소 붙여넣기 → 카드키에 대기. 체크아웃 7시간 뒤 자동으로 만료돼요.</div>` : ""}
       </form>
 
-      <div class="sys-foot">AI: ${f.aiMode === "openai" ? "OpenAI 연결됨" : `<span class="warn">데모 모드 (OPENAI_API_KEY 없음)</span>`} ·
+      <div class="sys-foot">AI: ${f.aiMode === "gemini" ? "Gemini 연결됨" : f.aiMode === "claude" ? "Claude 연결됨" : f.aiMode === "openai" ? "OpenAI 연결됨" : `<span class="warn">데모 모드 (GEMINI_API_KEY 없음)</span>`} ·
         저장소: ${f.storage === "redis" ? "Redis 연결됨" : `<span class="warn">메모리 (로컬 테스트용 · Vercel에선 Redis 연결 필요)</span>`}
-        ${f.aiError ? ` · <span class="warn">최근 OpenAI 호출 실패 → 데모 답변으로 대체됨 (${esc(f.aiError)}). API 키·OPENAI_MODEL을 확인하세요</span>` : ""}
+        ${f.aiError ? ` · <span class="warn">최근 AI 호출 실패 → 데모 답변으로 대체됨 (${esc(f.aiError)}). API 키·모델 이름을 확인하세요</span>` : ""}
         ${f.pinIsDefault ? ` · <span class="warn">PIN이 기본값(0000)이에요. OWNER_PIN 환경변수를 설정하세요</span>` : ""}<br>
         <button class="sbtn" id="reset" style="margin-top:8px">시연 데이터 초기화</button> · 손님 데모: <a href="/k/demo203" target="_blank" style="text-decoration:underline">/k/demo203</a></div>
     </div></div></section>`;
