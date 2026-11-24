@@ -1,0 +1,17 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["language", "intent", "answer", "steps", "ask_if_solved", "grounded", "sources", "escalate", "urgency", "owner_summary_ko"],
+  "properties": {
+    "language": { "type": "string", "enum": ["en", "ja", "zh", "ko", "vi", "th"], "description": "Language used in answer and steps" },
+    "intent": { "type": "string", "enum": ["facility", "rules_fees", "info", "emergency", "complaint", "other"] },
+    "answer": { "type": "string", "description": "Max 2 short sentences in the guest's language" },
+    "steps": { "type": "array", "items": { "type": "string" }, "description": "Max 4 ordered actions; empty if none" },
+    "ask_if_solved": { "type": "boolean", "description": "true when steps were given to fix a problem, so the app asks 'Did it work?'" },
+    "grounded": { "type": "boolean", "description": "true only if every fact came from the manual" },
+    "sources": { "type": "array", "items": { "type": "string" }, "description": "Manual section ids used" },
+    "escalate": { "type": "boolean", "description": "true when the owner must be notified" },
+    "urgency": { "type": "string", "enum": ["none", "normal", "urgent", "emergency"] },
+    "owner_summary_ko": { "type": "string", "description": "One Korean line for the owner when escalate is true, otherwise empty" }
+  }
+}
