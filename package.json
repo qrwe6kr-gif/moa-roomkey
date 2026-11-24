@@ -1,0 +1,14 @@
+{
+  "name": "moa-roomkey",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "pack": "node scripts/build-promptpack.mjs",
+    "dev": "node scripts/dev-server.mjs"
+  },
+  "dependencies": {
+    "openai": "^5.23.2"
+  },
+  "engines": { "node": ">=18" }
+}
