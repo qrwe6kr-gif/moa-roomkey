@@ -1,6 +1,7 @@
 // 모아스테이 룸키 — 손님 화면 (Figma 01~11 화면)
 import { DICT, LANGS, KO_SUB, SPEECH, LANG_NAME_IN, SOURCE_NAME } from "./i18n.js";
 import { icon } from "./icons.js";
+import { GUIDE, GUIDE_UI, MSG_UI } from "./guide.js";
 
 const $app = document.getElementById("app");
 const token = (location.pathname.match(/^\/k\/([^/]+)/) || [])[1] || new URLSearchParams(location.search).get("t");
@@ -11,6 +12,7 @@ const S = {
   lang: localStorage.getItem(LS("lang")),
   thread: [], lastTs: 0, pending: null, typing: false, answered: new Set(),
   lastTicket: null, photo: null, offline: false,
+  langDone: false, // 카드키를 탭해 열 때마다 언어 선택 화면부터 보여 줌
 };
 
 // ---------- 도우미 ----------
@@ -46,9 +48,9 @@ const tabbar = (on) => `
     <button class="tab ${on === "chat" ? "on" : ""}" data-go="chat">${icon("chat")}${t("askai")}</button>
     <button class="tab ${on === "help" ? "on" : ""}" data-go="help">${icon("help")}${t("help")}</button>
   </nav>`;
-const topbar = (title, koKey) => `
+const topbar = (title, koKey, koRaw) => `
   <header class="topbar"><button class="back" data-back aria-label="Back">${icon("back")}</button>
-  <div><h1>${esc(title)}</h1>${ko(koKey)}</div></header>`;
+  <div><h1>${esc(title)}</h1>${koRaw ? (S.lang === "ko" ? "" : `<span class="ko">${koRaw}</span>`) : ko(koKey)}</div></header>`;
 
 // ---------- 화면 ----------
 const V = {};
@@ -74,7 +76,7 @@ V.lang = () => {
     </div></section>`;
     S.lang = prev;
     $app.querySelectorAll("[data-lang]").forEach((b) => (b.onclick = () => { pick = b.dataset.lang; draw(); }));
-    $app.querySelector("#cont").onclick = () => { S.lang = pick; localStorage.setItem(LS("lang"), pick); document.documentElement.lang = pick; go(""); render(); };
+    $app.querySelector("#cont").onclick = () => { S.lang = pick; S.langDone = true; localStorage.setItem(LS("lang"), pick); document.documentElement.lang = pick; if (location.hash.slice(1) === "lang") go(""); else render(); };
   };
   draw();
 };
@@ -106,8 +108,8 @@ V.home = () => {
       <section class="hsec">
         <h2 class="htitle">${t("guide")} ${sub("guide")}</h2>
         <div class="tiles">
-          ${[["air", "t_air", "q_air"], ["trash", "t_trash", "q_trash"], ["rules", "t_rules", "q_rules"]].map(([ic, k, q]) => `
-            <button class="card tile" data-ask="${q}"><span class="icon-box">${icon(ic)}</span><span><b>${t(k)}</b>${ko(k)}</span></button>`).join("")}
+          ${[["air", "t_air"], ["trash", "t_trash"], ["rules", "t_rules"]].map(([ic, k]) => `
+            <button class="card tile" data-go="guide-${ic}"><span class="icon-box">${icon(ic)}</span><span><b>${t(k)}</b>${ko(k)}</span></button>`).join("")}
           <button class="card tile" data-go="photo"><span class="icon-box">${icon("photo")}</span><span><b>${t("t_photo")}</b>${ko("t_photo")}</span></button>
         </div>
       </section>
@@ -119,7 +121,6 @@ V.home = () => {
       ${S.aiMode === "demo" ? `<div class="demo-badge">${t("demo_badge")}</div>` : ""}
     </div>
   </div>${tabbar("home")}</section>`;
-  $app.querySelectorAll("[data-ask]").forEach((b) => (b.onclick = () => { go("chat"); setTimeout(() => ask(t(b.dataset.ask)), 50); }));
 };
 
 // 03 AI 질문
@@ -237,7 +238,7 @@ V.fix = (id) => {
   <div class="didwork"><h3>${t("did_work")}</h3><div class="row">
     <button class="btn btn-outline" id="yes">${t("yes_works")}</button>
     <button class="btn btn-warn" id="no">${t(f.no)}</button></div></div>
-  ${tabbar("help")}</section>`;
+  ${tabbar("home")}</section>`;
   $app.querySelector("#yes").onclick = () => { toast(t("glad")); go(""); };
   $app.querySelector("#no").onclick = () => openVerify(id);
   $app.querySelector("[data-copy-pw]")?.addEventListener("click", async () => { try { await navigator.clipboard.writeText(S.stay.wifi_pass); } catch {} toast(t("copied")); });
@@ -319,8 +320,16 @@ function shrink(file, max = 1024) {
   });
 }
 
-// 08 본인 확인 (사장님 호출 전)
+// 08 본인 확인 (사장님 호출 · 문의 전)
 function openVerify(topic) {
+  nameSheet(async (lastName) => {
+    const r = await api("/api/escalate", { method: "POST", body: { t: token, lastName, topic, lang: S.lang } });
+    S.verifiedName = lastName;
+    S.lastTicket = { id: r.ticketId, summaryKo: r.summaryKo, time: r.time };
+    await sync(); go("notified");
+  });
+}
+function nameSheet(onSubmit, label) {
   const wrap = document.createElement("div");
   wrap.className = "sheet-wrap";
   wrap.innerHTML = `<form class="sheet" id="vf"><div class="grabber"></div>
@@ -329,7 +338,7 @@ function openVerify(topic) {
     <div class="field"><label for="ln">${t("last_name")}</label><input id="ln" autocomplete="family-name" autocapitalize="characters" required></div>
     <div class="field-note">${icon("lock")}<span>${t("verify_note")}</span></div>
     <div class="err hidden" id="verr"></div>
-    <button class="btn btn-primary" id="vgo">${t("call_owner")}</button>
+    <button class="btn btn-primary" id="vgo">${label || t("call_owner")}</button>
     <button type="button" class="cancel" id="vc">${t("cancel")}</button></form>`;
   document.body.appendChild(wrap);
   const close = () => wrap.remove();
@@ -340,11 +349,8 @@ function openVerify(topic) {
     e.preventDefault();
     const btn = wrap.querySelector("#vgo"), err = wrap.querySelector("#verr");
     btn.disabled = true; err.classList.add("hidden");
-    try {
-      const r = await api("/api/escalate", { method: "POST", body: { t: token, lastName: wrap.querySelector("#ln").value, topic, lang: S.lang } });
-      S.lastTicket = { id: r.ticketId, summaryKo: r.summaryKo, time: r.time };
-      close(); await sync(); go("notified");
-    } catch (x) {
+    try { await onSubmit(wrap.querySelector("#ln").value); close(); }
+    catch (x) {
       btn.disabled = false;
       err.textContent = x.status === 401 ? t("name_mismatch") : x.status === 429 ? t("too_many") : t("err");
       err.classList.remove("hidden");
@@ -390,21 +396,67 @@ V.nearby = () => {
   </div>${tabbar("home")}</section>`;
 };
 
-// 도움말 탭
-V.help = () => {
-  $app.innerHTML = `<section class="screen"><div class="scroll">
-    <header class="topbar"><div><h1 style="font-size:22px">${t("help_title")}</h1>${ko("help_title")}</div></header>
-    <p class="pad muted" style="margin:0 0 14px;font-size:14px">${t("help_desc")}</p>
-    <div class="help-list">
-      ${[["hot", "hot", "p_hot"], ["temp", "thermo", "p_temp"], ["wifi", "wifi", "p_wifi"], ["door", "door", "p_door"]].map(([id, ic, k]) => `
-        <button class="card row-card" data-go="fix-${id}"><span class="icon-box">${icon(ic)}</span><span class="grow"><b>${t(k)}</b>${ko(k)}</span>${icon("chev")}</button>`).join("")}
-      <button class="card row-card" id="callOwner" style="border-color:var(--accent)"><span class="icon-box">${icon("bell")}</span><span class="grow"><b>${t("call_owner")}</b><small>${t("help_call_d")}</small></span>${icon("chev")}</button>
-      <a class="card row-card" href="tel:119"><span class="icon-box">${icon("emergency")}</span><span class="grow"><b>${t("call_119")}</b><small>${t("em_line")}</small></span></a>
-      <a class="card row-card" href="tel:1330"><span class="icon-box">${icon("phone")}</span><span class="grow"><b>${t("call_1330")}</b><small>${t("hotline_sub")}</small></span></a>
-    </div>
-  </div>${tabbar("help")}</section>`;
-  $app.querySelector("#callOwner").onclick = () => openVerify("call");
+// 객실 안내 상세 (에어컨 · 분리수거 · 하우스 규칙)
+V.guide = (id) => {
+  const g = GUIDE[id] || GUIDE.air, L = g[S.lang] || g.en, U = GUIDE_UI[S.lang] || GUIDE_UI.en;
+  const vis = g.visual ? `<div class="card visual guide-vis">
+      <div class="gv-title">${esc(g.visual.title)}</div>
+      <div class="panel-btns">${g.visual.keys.map(([k, n], i) => `<span class="pbtn ${i === 0 ? "hot" : ""}"><span class="dot">${esc(k)}</span>${esc(L.keyNames[n])}</span>`).join("")}</div>
+      <div class="cap">${esc(L.where)}</div></div>`
+    : `<div class="card visual guide-vis"><div class="icon-box" style="margin:0 auto 10px">${icon(g.icon)}</div><div class="cap" style="margin:0">${esc(L.where)}</div></div>`;
+  $app.innerHTML = `
+  <section class="screen"><div class="scroll">
+    ${topbar(L.title, null, g.koSub)}
+    ${vis}
+    <h3 class="sub-h">${id === "rules" ? U.rules_h : U.how}</h3>
+    <ol class="fix-steps" style="margin-top:10px">${L.steps.map(([a, b]) => `<li><span><b>${esc(a)}</b><small>${esc(b)}</small></span></li>`).join("")}</ol>
+    ${L.tips?.length ? `<div class="note" style="margin-top:20px">${icon("sparkle")}<span><b style="display:block;margin-bottom:2px">${U.good}</b>${L.tips.map(esc).join("<br>")}</span></div>` : ""}
+    <div class="pad" style="margin-top:16px"><button class="btn btn-outline" data-go="help">${icon("chat")}${U.ask_owner}</button></div>
+  </div>${tabbar("home")}</section>`;
 };
+
+// Help 탭 = 사장님께 문의 (본인 확인 후 전송 → 사장님에게 한국어로, 답장은 손님 언어로)
+V.help = () => {
+  const M = MSG_UI[S.lang] || MSG_UI.en;
+  $app.innerHTML = `
+  <section class="screen"><div class="scroll" id="helpScroll">
+    <header class="topbar"><div><h1 style="font-size:22px">${M.title}</h1>${S.lang === "ko" ? "" : `<span class="ko">사장님께 문의</span>`}</div></header>
+    <div class="note">${icon("chat")}<span>${M.desc}</span></div>
+    <div class="msgs" id="helpMsgs"></div>
+  </div>
+  <div class="help-foot">
+    <form class="msg-box" id="msgForm"><textarea id="msgText" rows="3" maxlength="500" placeholder="${esc(M.ph)}"></textarea>
+      <button class="btn btn-primary" id="msgSend">${icon("send")}${M.send}</button></form>
+    <div class="night-note">${M.night}</div>
+    <div class="urgent-row"><span>${M.urgent}</span><a href="tel:119">${icon("phone")}119</a><a href="tel:1330">${icon("phone")}1330</a></div>
+  </div>${tabbar("help")}</section>`;
+  renderHelpMsgs();
+  $app.querySelector("#msgForm").onsubmit = (e) => {
+    e.preventDefault();
+    const text = $app.querySelector("#msgText").value.trim();
+    if (!text) return $app.querySelector("#msgText").focus();
+    const send = async (lastName) => {
+      await api("/api/message", { method: "POST", body: { t: token, lastName, text, lang: S.lang } });
+      S.verifiedName = lastName;
+      $app.querySelector("#msgText").value = "";
+      await sync(); renderHelpMsgs(); toast(M.sent);
+    };
+    if (S.verifiedName) send(S.verifiedName).catch(() => { S.verifiedName = null; nameSheet(send, M.send); });
+    else nameSheet(send, M.send);
+  };
+};
+function renderHelpMsgs() {
+  const box = document.getElementById("helpMsgs");
+  if (!box) return;
+  const M = MSG_UI[S.lang] || MSG_UI.en;
+  const list = S.thread.filter((m) => (m.from === "guest" && m.via === "help") || m.from === "owner");
+  box.innerHTML = list.length
+    ? list.map((m) => m.from === "owner"
+        ? `<div class="bubble b-owner">${esc(m.text)}</div><div class="src">${icon("check")}${t("reply_from")}${S.lang === "ko" ? "" : " · 사장님 답장"}</div>`
+        : `<div class="bubble b-guest">${esc(m.text)}</div>`).join("")
+    : `<div class="empty-msg">${M.empty}</div>`;
+  const sc = document.getElementById("helpScroll"); if (sc) sc.scrollTop = sc.scrollHeight;
+}
 
 // ---------- 라우팅 · 동기화 ----------
 function render(expired) {
@@ -412,7 +464,7 @@ function render(expired) {
   if (S.offline) return showOffline();
   if (!S.stay) return;
   const h = location.hash.slice(1);
-  if (!S.lang || h === "lang") return V.lang();
+  if (!S.lang || !S.langDone || h === "lang") return V.lang();
   document.documentElement.lang = S.lang;
   if (h === "chat") return V.chat();
   if (h.startsWith("fix-")) return V.fix(h.slice(4));
@@ -420,6 +472,7 @@ function render(expired) {
   if (h === "photo") return V.photo();
   if (h === "nearby") return V.nearby();
   if (h === "help") return V.help();
+  if (h.startsWith("guide-")) return V.guide(h.slice(6));
   V.home();
 }
 
@@ -451,6 +504,7 @@ setInterval(async () => {
     const h = location.hash.slice(1);
     if (h === "chat") renderMsgs();
     if (h === "notified") renderReplies();
+    if (h === "help") renderHelpMsgs();
   }
 }, 4000);
 

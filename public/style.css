@@ -247,3 +247,20 @@ a { color: inherit; text-decoration: none; }
 
 .toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); background: var(--text); color: #fff; padding: 10px 16px; border-radius: 999px; font-size: 14px; z-index: 30; animation: up .2s; }
 .loading { flex: 1; display: grid; place-items: center; color: var(--muted); }
+
+/* 객실 안내 상세 */
+.guide-vis .gv-title { font-size: 13px; font-weight: 700; color: var(--muted); }
+.guide-vis .pbtn .dot { font-size: 13px; padding: 0 4px; text-align: center; }
+.sub-h { margin: 22px 20px 0; font-size: 17px; font-weight: 700; }
+/* Help = 사장님께 문의 */
+.b-right { align-self: flex-end; }
+.empty-msg { text-align: center; color: var(--muted); font-size: 13px; padding: 24px 0; }
+.help-foot { position: sticky; bottom: 0; background: var(--bg-app); padding: 8px 20px 10px; border-top: 1px solid var(--border); }
+.msg-box { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.msg-box textarea { border: 0; outline: 0; resize: none; font: inherit; font-size: 15px; background: none; min-height: 60px; }
+.msg-box .btn { height: 46px; font-size: 15px; }
+.night-note { font-size: 11px; color: var(--muted); margin: 8px 2px 0; }
+.urgent-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--warn-text); font-weight: 700; }
+.urgent-row span { flex: 1; }
+.urgent-row a { display: inline-flex; align-items: center; gap: 4px; background: var(--warn-bg); color: var(--warn-text); border-radius: 999px; padding: 6px 12px; }
+.urgent-row .ico { width: 14px; height: 14px; color: var(--warn-text); }
