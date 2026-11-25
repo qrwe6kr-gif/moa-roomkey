@@ -64,7 +64,6 @@ V.lang = () => {
     const prev = S.lang; S.lang = pick;
     $app.innerHTML = `
     <section class="screen"><div class="scroll lang-screen">
-      <div class="ready"><span class="ring">${icon("wifi")}</span><div><b>${t("ready")}</b><small>Moa Stay · Room ${esc(S.stay.room)}</small></div></div>
       <div class="welcome">${t("welcome")}</div>
       <div class="muted" style="font-size:14px">${t("choose")}</div>${S.lang === "ko" ? "" : `<div class="ko" style="font-size:14px">${KO_SUB.choose}</div>`}
       <div style="margin-top:14px"><span class="chip chip-teal">${icon("globe")}${t("detected", { lang: detected.sub })}</span></div>
