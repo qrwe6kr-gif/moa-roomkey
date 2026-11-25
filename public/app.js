@@ -79,44 +79,46 @@ V.lang = () => {
   draw();
 };
 
-// 02 홈
+// 02 홈 (Figma 02 Home: 체크아웃 카드만, 구분선 있는 3개 섹션)
 V.home = () => {
   const s = S.stay, co = fmtCheckout(s.checkout);
+  const sub = (k, size) => (S.lang === "ko" || !KO_SUB[k] ? "" : `<span class="ko" style="font-size:${size || 10}px">${KO_SUB[k]}</span>`);
   $app.innerHTML = `
   <section class="screen"><div class="scroll">
     <div class="home-head">
-      <div class="room">ROOM ${esc(s.room)} · ${esc(s.room)}호</div>
-      <h1>${esc(s.name_en)}</h1>
-      <button class="lang-pill" data-go="lang">${icon("globe")}${(S.lang || "en").toUpperCase()}</button>
+      <div class="head-row"><div><div class="room">ROOM ${esc(s.room)}</div><h1>${esc(s.name_en)}</h1></div>
+        <button class="lang-pill" data-go="lang">${icon("globe")}${(S.lang || "en").toUpperCase()}</button></div>
       <div class="card info-card">
-        <div class="info-row"><span class="icon-box">${icon("wifi")}</span>
-          <div class="grow"><div class="lbl">${t("wifi")}&nbsp; ${esc(s.wifi_ssid)}${S.lang === "ko" ? "" : " · " + KO_SUB.wifi}</div><div class="val">${esc(s.wifi_pass)}</div></div>
-          <button class="copy-btn" id="copy">${icon("copy")}${t("copy")}</button></div>
-        <div class="info-row"><span class="icon-box">${icon("clock")}</span>
-          <div class="grow"><div class="lbl">${t("checkout")}${S.lang === "ko" ? "" : " · " + KO_SUB.checkout}</div><div class="val">${esc(co.full)}</div><div class="sub">${t("late", { fee: s.late_fee })}</div></div></div>
+        <div class="lbl">${t("checkout")}${S.lang === "ko" ? "" : "&nbsp; " + KO_SUB.checkout}</div>
+        <div class="val">${esc(co.full)}</div>
+        <div class="sub">${t("late", { fee: s.late_fee })}</div>
       </div>
-      <div class="head-spacer"></div>
     </div>
     <div class="home-body">
-      <h2 class="section-title">${t("not_working")} ${ko("not_working")}</h2>
-      <div class="problems">
-        ${[["hot", "hot", "p_hot"], ["temp", "thermo", "p_temp"], ["wifi", "wifi", "p_wifi"], ["door", "door", "p_door"]].map(([id, ic, k]) => `
-          <button class="problem" data-go="fix-${id}"><span class="circle">${icon(ic)}</span><b>${t(k)}</b>${ko(k)}</button>`).join("")}
-      </div>
-      <button class="askbar" data-go="chat">${icon("sparkle")}<span class="grow"><b>${t("ask_bar")}</b><small>${t("ask_bar_sub")}</small></span><span class="mic-round" data-mic-home>${icon("mic")}</span></button>
-      <h2 class="section-title">${t("guide")} ${ko("guide")}</h2>
-      <div class="tiles">
-        ${[["air", "t_air", "q_air"], ["trash", "t_trash", "q_trash"], ["rules", "t_rules", "q_rules"]].map(([ic, k, q]) => `
-          <button class="card tile" data-ask="${q}"><span class="icon-box">${icon(ic)}</span><span><b>${t(k)}</b>${ko(k)}</span></button>`).join("")}
-        <button class="card tile" data-go="photo"><span class="icon-box">${icon("photo")}</span><span><b>${t("t_photo")}</b>${ko("t_photo")}</span></button>
-      </div>
-      <h2 class="section-title">${t("going")} ${ko("going")}</h2>
-      <button class="card row-card" data-go="nearby">${icon("shops")}<span class="grow"><b>${t("nearby")}</b><small>${t("nearby_sub")}${S.lang === "ko" ? "" : " · " + KO_SUB.nearby_sub}</small></span>${icon("chev")}</button>
+      <section class="hsec">
+        <h2 class="htitle">${t("not_working")} ${sub("not_working")}</h2>
+        <div class="problems">
+          ${[["hot", "hotLg", "p_hot"], ["temp", "thermo", "p_temp"], ["wifi", "wifi", "p_wifi"], ["door", "door", "p_door"]].map(([id, ic, k]) => `
+            <button class="problem" data-go="fix-${id}"><span class="circle">${icon(ic)}</span><b>${t(k)}</b>${ko(k)}</button>`).join("")}
+        </div>
+      </section>
+      <hr class="hdiv">
+      <section class="hsec">
+        <h2 class="htitle">${t("guide")} ${sub("guide")}</h2>
+        <div class="tiles">
+          ${[["air", "t_air", "q_air"], ["trash", "t_trash", "q_trash"], ["rules", "t_rules", "q_rules"]].map(([ic, k, q]) => `
+            <button class="card tile" data-ask="${q}"><span class="icon-box">${icon(ic)}</span><span><b>${t(k)}</b>${ko(k)}</span></button>`).join("")}
+          <button class="card tile" data-go="photo"><span class="icon-box">${icon("photo")}</span><span><b>${t("t_photo")}</b>${ko("t_photo")}</span></button>
+        </div>
+      </section>
+      <hr class="hdiv">
+      <section class="hsec">
+        <h2 class="htitle">${t("going")} ${sub("going", 13)}</h2>
+        <button class="card nearby-row" data-go="nearby">${icon("shops")}<span class="grow"><b>${t("nearby")}</b>${S.lang === "ko" ? "" : `<small>${KO_SUB.nearby_sub}</small>`}</span>${icon("chev")}</button>
+      </section>
       ${S.aiMode === "demo" ? `<div class="demo-badge">${t("demo_badge")}</div>` : ""}
     </div>
   </div>${tabbar("home")}</section>`;
-  $app.querySelector("#copy").onclick = async () => { try { await navigator.clipboard.writeText(s.wifi_pass); } catch {} toast(t("copied")); };
-  $app.querySelector("[data-mic-home]").onclick = (e) => { e.stopPropagation(); S.autoMic = true; go("chat"); };
   $app.querySelectorAll("[data-ask]").forEach((b) => (b.onclick = () => { go("chat"); setTimeout(() => ask(t(b.dataset.ask)), 50); }));
 };
 
@@ -213,8 +215,13 @@ const FIX = {
     <div class="panel-screen">난방&nbsp;&nbsp; 24°C</div>
     <div class="panel-btns"><span class="pbtn hot"><span class="dot">난방</span>${t("press_this")}</span><span class="pbtn"><span class="dot">▲▼</span>24°C</span><span class="pbtn"><span class="dot">운전</span>${t("t_air")}</span></div>
     <div class="cap">${t("temp_cap")}</div>` },
-  wifi: { title: "fix_wifi", steps: ["wifi_s1", "wifi_s2", "wifi_s3"], no: "no_still", visual: () => `
-    <div class="wifi-vis"><div><small>Network</small><b>${esc(S.stay.wifi_ssid)}</b></div><div><small>${t("wifi_pw")}</small><b>${esc(S.stay.wifi_pass)}</b></div></div>` },
+  wifi: { title: "fix_wifi", steps: ["wifi_s1", "wifi_s2", "wifi_s3"], no: "no_offline", visual: () => `
+    <div class="wifi-rows">
+      <div class="wifi-row"><span class="grow"><small>${t("w_network")}${S.lang === "ko" ? "" : " · 네트워크"}</small><b>${esc(S.stay.wifi_ssid)}</b></span></div>
+      <div class="wifi-row"><span class="grow"><small>${t("w_password")}${S.lang === "ko" ? "" : " · 비밀번호"}</small><b>${esc(S.stay.wifi_pass)}</b></span>
+        <button class="copy-btn" data-copy-pw>${icon("copy")}${t("copy")}</button></div>
+    </div>
+    <div class="cap">${t("w_same")}${S.lang === "ko" ? "" : " · 모든 객실 동일"}</div>` },
   door: { title: "fix_door", steps: ["door_s1", "door_s2", "door_s3"], no: "no_still", visual: () => `
     <div class="panel-btns" style="margin-top:0"><span class="pbtn hot"><span class="dot">${icon("door")}</span>${t("press_this")}</span><span class="pbtn"><span class="dot">${icon("lock")}</span>${t("p_door")}</span></div>
     <div class="cap">${t("door_cap")}</div>` },
@@ -225,7 +232,7 @@ V.fix = (id) => {
   <section class="screen"><div class="scroll">
     ${topbar(t(f.title), "fix_" + id)}
     <div class="card visual">${f.visual()}</div>
-    <ol class="fix-steps">${f.steps.map((k) => `<li><span><b>${esc(t(k, { ssid: S.stay.wifi_ssid }))}</b><small>${esc(t(k + "d"))}</small></span></li>`).join("")}</ol>
+    <ol class="fix-steps">${f.steps.map((k) => `<li><span><b>${esc(t(k, { ssid: S.stay.wifi_ssid }))}</b><small>${esc(t(k + "d", { ssid: S.stay.wifi_ssid }))}</small></span></li>`).join("")}</ol>
   </div>
   <div class="didwork"><h3>${t("did_work")}</h3><div class="row">
     <button class="btn btn-outline" id="yes">${t("yes_works")}</button>
@@ -233,6 +240,7 @@ V.fix = (id) => {
   ${tabbar("help")}</section>`;
   $app.querySelector("#yes").onclick = () => { toast(t("glad")); go(""); };
   $app.querySelector("#no").onclick = () => openVerify(id);
+  $app.querySelector("[data-copy-pw]")?.addEventListener("click", async () => { try { await navigator.clipboard.writeText(S.stay.wifi_pass); } catch {} toast(t("copied")); });
 };
 
 // 05 사장님 연결됨
